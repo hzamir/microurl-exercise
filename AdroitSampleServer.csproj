@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web" InitialTargets="NpmInstall;NpmInstallNoLock">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+        <Client>ReactClient</Client>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0"/>
+    </ItemGroup>
+    <!--    Prefer npm ci command, unless there is no lockfile, then trigger full install -->
+    <Target Name="NpmInstall" Condition="Exists('./$(Client)/package-lock.json')" Inputs="./$(Client)/package.json;./$(Client)/package-lock.json" Outputs="./$(Client)/node_modules">
+        <Exec Command="cd ./$(Client) &amp;&amp; npm ci" />
+    </Target>
+    <Target Name="NpmInstallNoLock" Condition="!Exists('./$(Client)/package-lock.json')" Inputs="./$(Client)/package.json" Outputs="./$(Client)/node_modules">
+        <Exec Command="cd ./$(Client) &amp;&amp; npm install" />
+    </Target>
+    <Target Name="CleanReactOutput">
+        <Delete Files="$(OutDir)dist\**\*.*" />
+    </Target>
+    <Target Name="PreBuild" BeforeTargets="PreBuildEvent" DependsOnTargets="CleanReactOutput">
+        <Exec Command="cd ./$(Client) &amp;&amp; npm run build" />
+    </Target>
+    <Target Name="CopyFiles" AfterTargets="PreBuild">
+        <ItemGroup>
+            <Content Include="./$(Client)/dist/**/*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(Content)" DestinationFolder="$(OutDir)dist" SkipUnchangedFiles="false" />
+    </Target>
+</Project>

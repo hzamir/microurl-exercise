@@ -1,0 +1,11 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+node_modules/
+dist/
+.pnp/
+.pnp.js
+.vite/
+.idea/
