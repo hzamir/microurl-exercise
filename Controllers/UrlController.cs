@@ -18,7 +18,7 @@ public class UrlController : ControllerBase
     public UrlController(UrlConverter urlConverter, IConfiguration configuration)
     {
         _urlConverter = urlConverter;
-        _serverUrl = configuration["ServerUrl"] ?? "http://badserverurl/";  // appsettings.json must be correct
+        _serverUrl = configuration["ServerUrl"] ?? "http://badserverurl/";  // appsettings.yaml must be correct
     }
     
     [HttpGet("lookup")]

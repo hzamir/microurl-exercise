@@ -14,6 +14,8 @@
         </None>
     </ItemGroup>
     <ItemGroup>
+        <!-- for the benefit of commentable yaml inputs, I consider this package adequate for convenience -->
+        <PackageReference Include="Microsoft.Extensions.Configuration.Yaml" Version="2.0.0-preview2" />
         <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0"/>
     </ItemGroup>
     <!--    Prefer npm ci command, unless there is no lockfile, then trigger full install -->

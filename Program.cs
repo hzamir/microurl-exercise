@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration.Yaml;
 using UrlMagic;
 using Middleware;
 
@@ -30,23 +31,30 @@ class Program
             {
                 webBuilder.UseStartup<Startup>();
                 webBuilder.UseWebRoot("ReactClient/dist");
-                webBuilder.ConfigureServices(services =>
+                webBuilder.ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    config.AddYamlFile("appsettings.yaml", optional: false, reloadOnChange: true);
+                });
+                webBuilder.ConfigureServices((context, services) =>
                 {
                     services.AddSingleton<UrlConverter>(); // ensure there is only one
                     services.AddControllers();
 
-                    // todo - add CORS temporarily to use this server with a client developed
+                    // settings has an optional CORS temporarily to use this server with a client developed
                     // faster directly in webstorm
-                    services.AddCors(options =>
-                    {
-                        options.AddPolicy("AllowAnyOrigin",
-                            builder =>
+                    var allowAnyOrigin = context.Configuration.GetValue<bool>("AllowAnyOrigin");
+                    if(allowAnyOrigin) {    
+                        services.AddCors(options =>
                             {
-                                builder.AllowAnyOrigin()
-                                    .AllowAnyHeader()
-                                    .AllowAnyMethod();
-                            });
-                    });
+                                options.AddPolicy("AllowAnyOrigin",
+                                    builder =>
+                                    {
+                                        builder.AllowAnyOrigin()
+                                            .AllowAnyHeader()
+                                            .AllowAnyMethod();
+                                    });
+                            }); 
+                    }
                 })
                 .Configure(config =>
                 {
