@@ -29,7 +29,6 @@ public class UrlController : ControllerBase
             Ok(new UrlPair(original, alias)): 
             AliasIsUnknown(new UrlPair("", alias));
     }
-
     
     [HttpPost("create")]
     public IActionResult CreateTinyUrl([FromBody] UrlPair pair)
@@ -50,7 +49,8 @@ public class UrlController : ControllerBase
                 Ok(new FullAlias(pair.Original, result, $"{_serverUrl}/{result}")) :
                 Unprocessable(pair);
         }
-    }    
+    }
+    
     [HttpPost("revoke")]
     public IActionResult RevokeTinyUrl([FromBody] UrlPair pair)
     {
@@ -60,4 +60,40 @@ public class UrlController : ControllerBase
             AliasIsUnknown(pair);
     }
 
+    [HttpGet("statistics")]
+    public IActionResult Statistics(bool group = false, string? sort = null)
+    {
+        var urlData = _urlConverter.UrlStats(); // Assuming this method returns all URL data
+
+        // since we compactly represent stats as arrays of evident values
+        // it is necessary to cast them as needed for longs or strings when sorting
+        // customizing  json output to use typed values but prevent auto-output as named json fields
+        // is too much trouble for one little controller, so we are just naming the indices of the output
+        const int aliasIndex = 0;
+        const int countIndex = 1;
+        
+        if (group)
+        {
+            var groupedData = urlData
+                .GroupBy(x => x.LongUrl)
+                .Select(g => new
+                {
+                    Url = g.Key,
+                    Aliases = g.Select(x => new object[] { x.Alias, x.Count }).ToList()
+                })
+                .ToList();
+
+            return Ok(new { UniqueUrlCount = groupedData.Count, AliasCount = urlData.Count, Urls = groupedData });
+        }
+        else
+        {
+            var aliases = urlData.Select(x => new object[] { x.Alias, x.Count, x.LongUrl }).ToList();
+            if (sort == "alias")
+                aliases = aliases.OrderBy(x => (string)x[aliasIndex]).ToList();
+            else if (sort == "count")
+                aliases = aliases.OrderByDescending(x => (long)x[countIndex]).ThenBy(x => (string)x[aliasIndex]).ToList();
+
+            return Ok(new { AliasCount = aliases.Count, Aliases = aliases });
+        }
+    }
 }

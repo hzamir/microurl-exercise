@@ -16,3 +16,7 @@ public record FullAlias(string Original, string Alias, string MicroUrl)
     {
     }
 }
+
+public record UrlStat( string Alias, string LongUrl, long Count);
+
+public record AliasCount(string Alias, long Count);

@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using AdroitSampleServer.Models;
+
 namespace AdroitSampleServer.UrlMagic;
 
 // the Singleton guarantee for UrlConverter is in Program.cs services.AddSingleton<UrlConverter>(); // ensure there is only one
@@ -61,11 +63,14 @@ public class UrlConverter
         return result;
     }
 
- // my urls functionality was not asked for,  tracks all urls you submitted
- 
+    // this is a massive dump of the current state of the dictionary
+    public List<UrlStat> UrlStats()
+    {
+        return _dict.Select(kvp => new UrlStat(kvp.Key, kvp.Value.Url, kvp.Value.Counter)).ToList();
+    }
+    
     
 }
-
 public class UrlData
 {
     private long _counter;
