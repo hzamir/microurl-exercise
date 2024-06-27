@@ -11,9 +11,9 @@ public class UrlController : ControllerBase
     private readonly UrlConverter _urlConverter;
     private readonly string _serverUrl;  // used to generate a full url from alias
     
-    private ObjectResult Unprocessable(UrlPair pair)   => StatusCode(422, new UrlPairError(pair, "Invalid URL"));
-    private ObjectResult AliasInUse(UrlPair pair)      => StatusCode(409, new UrlPairError(pair, "Proposed URL alias already in use"));
-    private ObjectResult AliasIsUnknown(UrlPair pair)  => StatusCode(404, new UrlPairError(pair, "Alias is Unknown"));
+    private IActionResult Unprocessable(UrlPair pair)   => UnprocessableEntity(new UrlPairError(pair, "Invalid URL"));
+    private IActionResult AliasInUse(UrlPair pair)      => Conflict(new UrlPairError(pair, "Proposed URL alias already in use"));
+    private IActionResult AliasIsUnknown(UrlPair pair)  => NotFound(new UrlPairError(pair, "Alias is Unknown"));
 
     public UrlController(UrlConverter urlConverter, IConfiguration configuration)
     {
