@@ -40,7 +40,6 @@ const AliasForm = styled.form`
   grid-gap: 5px;
 `;
 
-const prefix = 'http://localhost:5000';
 const originalUrlPlaceholder="https://letmegooglethat.com/?q=How+to+fix+a+Jetbrains+Rider+.net+installation+on+Mac"
 
 
@@ -70,7 +69,7 @@ export const DeleteAlias = () => {
 
   const revokeAlias = async () => {
         try {
-          const response = await fetch(`${prefix}/api/url/revoke`, {
+          const response = await fetch(`/api/url/revoke`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -188,7 +187,7 @@ export const CreateAlias = () => {
   const handleSubmit = async (event:React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isValidUrl) {
-      const response = await fetch(`${prefix}/api/url/create`, {
+      const response = await fetch(`api/url/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
