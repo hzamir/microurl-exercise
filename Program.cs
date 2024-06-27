@@ -59,6 +59,20 @@ class Program
                 .Configure(config =>
                 {
                     // config.UseDeveloperExceptionPage();  // should only be in env.IsDevelopment()
+                    
+         
+                    config.UseExceptionHandler(appBuilder =>
+                    {
+                        appBuilder.Run(async context =>
+                        {
+                            var request = context.Request;
+                            var url = request.GetDisplayUrl(); // Get the URL of the request
+
+                            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                            await context.Response.WriteAsync($"An unexpected fault happened while accessing the url\n{url}\n\nTry again later.");
+                        });
+                    });
+                    
                     config.UseStatusCodePages(async context =>
                     {
                         var response = context.HttpContext.Response;
