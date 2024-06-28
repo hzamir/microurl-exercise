@@ -7,7 +7,7 @@ The build for the client is triggered by the C# project. There is nothing else t
 
 However, if you wish to build and run a live client interactively the following is necessary:
 * `npm run dev` to start the development server (it will run in some other port)
-* provide url prefix for all the api commands, (I was using this for development but removed it)
+* provide url prefix for all the api commands in .env.development file it should agree with appsettings.yaml ServerUrl
 * the server's appsettings.yaml file must enable CORS (it's been disabled by default) to use server apis
 
 > **Note:** Note the DockerFile is not complete. It has no section to guarantee npm builds.

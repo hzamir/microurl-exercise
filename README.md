@@ -66,13 +66,19 @@ Entering a custom short URL or letting the app randomly generate one while maint
   * The requirements made no mention of security concerns, so _I did not go there_, enhancements would include
     * Nonces to prevent replay attacks
     * Rate limits
+* **designed with architecture in mind**
+  * This requirement is actually only partially implementable the following reasons
+    * scale of the system: over-organizing a small set of files is premature
+    * not the best use of the allotted time, it's better done with continuous refactoring of code as it develops
+    * naming things correctly is 80% of programming, but unlikely to be named or factored ideally in a coding exercise
 
 ## Other observations
 * Tiny urls
   * Lossy by definition
   * Need no correlation to original URLS (in fact cannot correlate when user chooses his own alias)
   * Therefore, the algorithm to generate them is not critical, it is more important the urls be legible
-    * I chose a 8 character modified base64, notwithstanding the fact 
+    * I chose an 8 character modified base64, for simplicity
+      * ideally would remove some characters easily confused for others (0O, 1l) with a more custom encoding
 * No limitation on supported Url protocols (rather than just http/https)
   * I allow aliases to protocols like ftp, etc. since they are also potentially long.
   * This choice can easily be made more stringent
