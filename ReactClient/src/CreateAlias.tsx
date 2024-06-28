@@ -1,25 +1,29 @@
 import React, {useState, useEffect, CSSProperties} from 'react';
 import styled from "styled-components";
-import {safeEncode, useNavigationAndState} from './utilities';
+import {safeEncode, useNavigationAndState, isValidAlias, isValidUrl} from './utilities';
 import {Button} from './Button';
 
 const inputStyle:CSSProperties = {
-  height:'2.0em',
-  alignSelf: 'end'
+    height:'2.0em',
+    alignSelf: 'end'
 };
 const labelStyle:CSSProperties = {
-  textAlign: 'right',
-  alignSelf: 'end',
-  paddingBottom: '6px'
+    textAlign: 'right',
+    alignSelf: 'end',
+    paddingBottom: '6px'
 };
 
-type InvalidMessageProps = { show: boolean};
-const Invalid = styled.small<InvalidMessageProps>`
-  visibility: ${props => props.show ? 'visible' : 'hidden'};
-  grid-area: firstWarning;
-  text-align: left;
-  font-style: italic; 
-  color: red;
+type InvalidMessageProps = { show: boolean}
+const InvalidUrlWarning = styled.small<InvalidMessageProps>`
+    visibility: ${props => props.show ? 'visible' : 'hidden'};
+    text-align: left;
+    font-style: italic;
+    color: red;
+    grid-area: firstWarning;
+`;
+
+const InvalidAliasWarning = styled(InvalidUrlWarning)`
+    grid-area: secondWarning;
 `;
 
 const AliasForm = styled.form`
@@ -53,151 +57,161 @@ const fetchTemplate = { method: 'POST', headers: { 'Content-Type': 'application/
 
 type SubmitFunction = (event: React.SyntheticEvent) => Promise<void>;
 function generateSubmit(url: string, body: AliasInfo, okfunc: OkFunction, errfunc: ErrorFunction):SubmitFunction {
-  return async (event: React.SyntheticEvent) => {
-    event.preventDefault();
-      try {
-          const response = await fetch(url, {...fetchTemplate, body: safeEncode(body)});
-          const data = await response.json();
-          if (response.ok)
-              okfunc(data as AliasInfo);
-          else
-              errfunc(data as AliasErrorInfo, response.status);
-      } catch (err) {
-          console.error(err);  //todo requires more error handling
-      }
-  };
+    return async (event: React.SyntheticEvent) => {
+
+        // prefix necessary when running a dev server rather than built
+        // when it is not running from the same origin
+        // it must be set in the .env file, should agree with appsettings.yaml ServerUrl
+        // todo: single source of truth for ServerUrl and .env
+        const prefix = import.meta.env.DEV ? import.meta.env.VITE_API_PREFIX : '';
+
+        event.preventDefault();
+        try {
+            const response = await fetch(`${prefix}${url}`, {...fetchTemplate, body: safeEncode(body)});
+            const data = await response.json();
+            if (response.ok)
+                okfunc(data as AliasInfo);
+            else
+                errfunc(data as AliasErrorInfo, response.status);
+        } catch (err) {
+            console.error(err);  //todo requires more error handling
+        }
+    };
 }
 
 
 export const DeleteAlias = () => {
-  const [navigate, {original, alias}] = useNavigationAndState<AliasInfo>();
-  
-  const revokeAlias = generateSubmit(`/api/url/revoke`, {original, alias},
-  (data)=>navigate('/deleted', {original, alias: data?.alias}),
-  (data,status)=>navigate('/notdeleted', {original, proposedAlias: alias, error: data?.error, status})
-   );
-  
-  return (
-    <>
-      <h1>Delete an alias</h1>
-      <Button onClick={revokeAlias}>Confirm Deletion of alias {alias}</Button>
-    </>
-  );
+    const [navigate, {original, alias}] = useNavigationAndState<AliasInfo>();
+
+    const revokeAlias = generateSubmit(`/api/url/revoke`, {original, alias},
+        (data)=>navigate('/deleted', {original, alias: data?.alias}),
+        (data,status)=>navigate('/notdeleted', {original, proposedAlias: alias, error: data?.error, status})
+    );
+
+    return (
+        <>
+            <h1>Delete an alias</h1>
+            <Button onClick={revokeAlias}>Confirm Deletion of alias {alias}</Button>
+        </>
+    );
 };
 
 export const AliasDeleted = () => {
-  const [navigate, {original, alias}] = useNavigationAndState<AliasInfo>();
-  return (
-    <>
-      <h1>Successfully Deleted</h1>
-      <p>original: {original}</p>
-      <p>alias: {alias}</p>
-      <Button onClick={() => navigate('/create')}>Create a new Alias</Button>
-      <Button onClick={() => navigate('/delete',  {original,alias})}>Delete again (to watch that fail)</Button>
-    </>
-  );
+    const [navigate, {original, alias}] = useNavigationAndState<AliasInfo>();
+    return (
+        <>
+            <h1>Successfully Deleted</h1>
+            <p>original: {original}</p>
+            <p>alias: {alias}</p>
+            <Button onClick={() => navigate('/create')}>Create a new Alias</Button>
+            <Button onClick={() => navigate('/delete',  {original,alias})}>Delete again (to watch that fail)</Button>
+        </>
+    );
 };
 
 export const AliasNotDeleted = () => {
-  const [navigate, {original, proposedAlias, error, status}] = useNavigationAndState<AliasErrorInfo>();
+    const [navigate, {original, proposedAlias, error, status}] = useNavigationAndState<AliasErrorInfo>();
 
-  return (
-    <>
-      <h1>Not Deleted</h1>
-      <p>original: {original}</p>
-      <p>proposedAlias: {proposedAlias}</p>
-      <p style={{color: 'red'}}>{status} / {error}</p>
-      <Button onClick={() => navigate('/create')}>Acknowledge</Button>
-    </>
-  );
+    return (
+        <>
+            <h1>Not Deleted</h1>
+            <p>original: {original}</p>
+            <p>proposedAlias: {proposedAlias}</p>
+            <p style={{color: 'red'}}>{status} / {error}</p>
+            <Button onClick={() => navigate('/create')}>Acknowledge</Button>
+        </>
+    );
 };
 
 export const AliasNotCreated = () => {
-  const [navigate, {original, proposedAlias, error, status}] = useNavigationAndState<AliasErrorInfo>();
+    const [navigate, {original, proposedAlias, error, status}] = useNavigationAndState<AliasErrorInfo>();
 
-  return (
-    <>
-      <h1>Not Created</h1>
-      <p>original: {original}</p>
-      <p>proposedAlias: {proposedAlias}</p>
-      <p style={{color:'red'}}>{status} / {error}</p>
-      <Button onClick={() => navigate('/create')}>Try Again</Button>
-    </>
-  );
+    return (
+        <>
+            <h1>Not Created</h1>
+            <p>original: {original}</p>
+            <p>proposedAlias: {proposedAlias}</p>
+            <p style={{color:'red'}}>{status} / {error}</p>
+            <Button onClick={() => navigate('/create')}>Try Again</Button>
+        </>
+    );
 };
 
 export const AliasCreated = () => {
- const [navigate, {original,alias,microUrl}] = useNavigationAndState<AliasInfo>();
+    const [navigate, {original,alias,microUrl}] = useNavigationAndState<AliasInfo>();
 
- return (
-  <>
-    <h1>Alias Created</h1>
-    <p>original: {original}</p>
-    <p>alias: {alias}</p>
-    <p>Your new url is: <a title="test url in a new window" href={microUrl} target="_blank" rel="noopener noreferrer">{microUrl}</a></p>
-    <Button onClick={()=>navigate('/create')}>Create a new one</Button>
-    <Button onClick={()=>navigate('/delete', {original, alias})}>Delete the alias</Button>
-  </>
- );
+    return (
+        <>
+            <h1>Alias Created</h1>
+            <p>original: {original}</p>
+            <p>alias: {alias}</p>
+            <p>Your new url is: <a title="test url in a new window" href={microUrl} target="_blank" rel="noopener noreferrer">{microUrl}</a></p>
+            <Button onClick={()=>navigate('/create')}>Create a new one</Button>
+            <Button onClick={()=>navigate('/delete', {original, alias})}>Delete the alias</Button>
+        </>
+    );
 };
 
 export const CreateAlias = () => {
-  const [navigate,_] = useNavigationAndState();
-  const [originalUrl, setOriginalUrl] = useState(originalUrlPlaceholder); // todo replace with blank initial state
-  const [alias, setAlias] = useState('');
-  const [isValidUrl, setIsValidUrl] = useState(false);
-  const [allowBadUrls, setAllowBadUrls] = useState(false);
+    const [navigate,_] = useNavigationAndState();
+    const [originalUrl, setOriginalUrl] = useState('');
+    const [alias, setAlias] = useState('');
+    const [validUrl, setValidUrl] = useState(false);
+    const [validAlias, setValidAlias] = useState(true);
+    const [allowBadUrls, setAllowBadUrls] = useState(false);
 
-  useEffect(() => {
-      try {
-        if(!allowBadUrls)
-          new URL(originalUrl);
-        setIsValidUrl(true);
-      } catch (_) {
-        setIsValidUrl(false);
-      }
-  }, [originalUrl, allowBadUrls]);
+    // todo: this re-renders redundantly, but the clarity of the dependencies is a better value for this use case for now
+    // serious components would never do this
+    useEffect(() => setValidUrl(allowBadUrls || isValidUrl(originalUrl)), [originalUrl, allowBadUrls]);
 
-  const handleSubmit = generateSubmit(`api/url/create`, {original:originalUrl, alias},
-    (data)=>
-        { 
-          setAlias(data.alias); 
-          navigate('/created', {original:originalUrl, alias:data.alias, microUrl:data.microUrl})
+    // seious components would also make use of useCallback, but its always regenerated due to dependencies
+    const handleSubmit = generateSubmit(`/api/url/create`, {original:originalUrl, alias},
+        (data)=>
+        {
+            setAlias(data.alias);
+            navigate('/created', {original:originalUrl, alias:data.alias, microUrl:data.microUrl})
         },
-    (data, status)=>navigate('/notcreated', {original:originalUrl, proposedAlias:alias, error:data.error, status})
-  );
-  
-  return (
-    <AliasForm onSubmit={handleSubmit} >
-      <label style={{...labelStyle, gridArea: 'firstLabel'}}>
-        Original URL:
-      </label>
-      <input name={'originalUrl'}
-             placeholder={originalUrlPlaceholder}
-             type="text"
-             value={originalUrl}
-             onChange={(e) => setOriginalUrl(e.target.value)}
-             style={{...inputStyle, gridArea: 'firstInput'}}
-      />
+        (data, status)=>navigate('/notcreated', {original:originalUrl, proposedAlias:alias, error:data.error, status})
+    );
 
-      {isValidUrl ? (
-        <label style={{gridArea: 'firstWarning', marginLeft:'-130px'}}>
-          <input type="checkbox" checked={allowBadUrls} onChange={(e) => setAllowBadUrls(e.target.checked)} />
-          Allow bad urls to test API
-        </label>
-      ) : (
-        <Invalid show={!isValidUrl && !!originalUrl}>Above text is not (yet) a valid URL</Invalid>
-      )}
-      <label style={{...labelStyle, gridArea: 'secondLabel'}}>
-        Alias:
-      </label>
-      <input name={'alias'}
-             type="text"
-             value={alias}
-             onChange={(e) => setAlias(e.target.value)}
-             style={{...inputStyle, gridArea: 'secondInput'}}
-      />
-      <Button type="submit" disabled={!isValidUrl} style={{gridArea:'submit'}}>Submit</Button>
-    </AliasForm>
-  );
+    return (
+        <AliasForm onSubmit={handleSubmit} >
+            <label style={{...labelStyle, gridArea: 'firstLabel'}}>
+                Original URL:
+            </label>
+            <input name={'originalUrl'}
+                   placeholder={originalUrlPlaceholder}
+                   type="text"
+                   value={originalUrl}
+                   onChange={(e) => setOriginalUrl(e.target.value)}
+                   style={{...inputStyle, gridArea: 'firstInput'}}
+            />
+
+            {validUrl ? (
+                <label style={{gridArea: 'firstWarning', marginLeft:'-130px'}}>
+                    <input type="checkbox" checked={allowBadUrls} onChange={(e) => setAllowBadUrls(e.target.checked)} />
+                    Allow bad urls to test API
+                </label>
+            ) : (
+                <InvalidUrlWarning show={!validUrl && !!originalUrl}>Above text is not (yet) a valid URL</InvalidUrlWarning>
+            )}
+            <label style={{...labelStyle, gridArea: 'secondLabel'}}>
+                Alias:
+            </label>
+            <input name={'alias'}
+                   type="text"
+                   value={alias}
+                   onChange={({target: {value}}) =>
+                   {
+                       // value = value.trim(); // rather than complain about hard to see spaces suppress them if on the ends
+                       setValidAlias(isValidAlias(value));
+                       setAlias(value)
+                   }
+                   }
+                   style={{...inputStyle, gridArea: 'secondInput'}}
+            />
+            <InvalidAliasWarning show={!validAlias}>Alias may only contain A-Z, a-z, minus, and underscore characters</InvalidAliasWarning>
+            <Button type="submit" disabled={!validUrl || !validAlias } style={{gridArea:'submit'}}>Submit</Button>
+        </AliasForm>
+    );
 };

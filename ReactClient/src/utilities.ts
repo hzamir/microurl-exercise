@@ -20,3 +20,15 @@ export function safeEncode(o:unknown)
         console.error(`error encoding`, o);
     }
 }
+
+// for testing validity of an alias it is for input purposes. we accept empty string as valid since no explicit alias is always good
+const validAliasRegex = /^[a-zA-Z0-9-_]+$/;
+export const isValidAlias = (alias: string) => alias === "" || validAliasRegex.test(alias);
+
+export const isValidUrl = (s: string) => {
+    try {
+      new URL(s);
+      return true;  
+    } catch (_) {}
+    return false;
+}
