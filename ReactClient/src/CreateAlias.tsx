@@ -45,7 +45,7 @@ const AliasForm = styled.form`
 `;
 
 const originalUrlPlaceholder="https://letmegooglethat.com/?q=How+to+fix+a+Jetbrains+Rider+.net+installation+on+Mac"
-
+const illegalUrlCheckbox: boolean = import.meta.env.VITE_ALLOW_BAD_URL_CHECKBOX === 'true';
 
 type AliasInfo        = {original:string, alias:string, microUrl?:string};
 type AliasErrorInfo   = {original:string, proposedAlias:string, error:string, status:number};
@@ -156,13 +156,17 @@ export const CreateAlias = () => {
     const [navigate,_] = useNavigationAndState();
     const [originalUrl, setOriginalUrl] = useState('');
     const [alias, setAlias] = useState('');
-    const [validUrl, setValidUrl] = useState(false);
+    const [validUrl, setValidUrl] = useState(true);  // empty is valid for warning purposes button still disabled
     const [validAlias, setValidAlias] = useState(true);
     const [allowBadUrls, setAllowBadUrls] = useState(false);
 
     // todo: this re-renders redundantly, but the clarity of the dependencies is a better value for this use case for now
     // serious components would never do this
     useEffect(() => setValidUrl(allowBadUrls || isValidUrl(originalUrl)), [originalUrl, allowBadUrls]);
+
+    // to submit, alias must be valid, url must not be empty, and it must be "valid" (though for form purpose empty is valid) 
+    const submitDisabled = !originalUrl || !validUrl || !validAlias;
+    console.log(`submitDisabled: ${submitDisabled} originalUrl: "${originalUrl}" validUrl: ${validUrl} validAlias: ${validAlias}`)
 
     // seious components would also make use of useCallback, but its always regenerated due to dependencies
     const handleSubmit = generateSubmit(`/api/url/create`, {original:originalUrl, alias},
@@ -187,14 +191,15 @@ export const CreateAlias = () => {
                    style={{...inputStyle, gridArea: 'firstInput'}}
             />
 
-            {validUrl ? (
+            {(!validUrl && !!originalUrl) ? (
+                <InvalidUrlWarning show={!validUrl && !!originalUrl}>Above text is not (yet) a valid URL</InvalidUrlWarning>
+            ) : illegalUrlCheckbox? (
                 <label style={{gridArea: 'firstWarning', marginLeft:'-130px'}}>
                     <input type="checkbox" checked={allowBadUrls} onChange={(e) => setAllowBadUrls(e.target.checked)} />
                     Allow bad urls to test API
                 </label>
-            ) : (
-                <InvalidUrlWarning show={!validUrl && !!originalUrl}>Above text is not (yet) a valid URL</InvalidUrlWarning>
-            )}
+            ) : null}
+            
             <label style={{...labelStyle, gridArea: 'secondLabel'}}>
                 Alias:
             </label>
@@ -211,7 +216,7 @@ export const CreateAlias = () => {
                    style={{...inputStyle, gridArea: 'secondInput'}}
             />
             <InvalidAliasWarning show={!validAlias}>Alias may only contain A-Z, a-z, minus, and underscore characters</InvalidAliasWarning>
-            <Button type="submit" disabled={!validUrl || !validAlias } style={{gridArea:'submit'}}>Submit</Button>
+            <Button type="submit" disabled={submitDisabled} style={{gridArea:'submit'}}>Submit</Button>
         </AliasForm>
     );
 };
