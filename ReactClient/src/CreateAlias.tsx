@@ -1,6 +1,6 @@
 import React, {useState, useEffect, CSSProperties} from 'react';
 import styled from "styled-components";
-import {useNavigate, useLocation, NavigateFunction} from "react-router-dom";
+import {safeEncode, useNavigationAndState} from './utilities';
 import {Button} from './Button';
 
 const inputStyle:CSSProperties = {
@@ -43,65 +43,48 @@ const AliasForm = styled.form`
 const originalUrlPlaceholder="https://letmegooglethat.com/?q=How+to+fix+a+Jetbrains+Rider+.net+installation+on+Mac"
 
 
-type AliasInfo        = {original:string, alias:string, microUrl:string};
+type AliasInfo        = {original:string, alias:string, microUrl?:string};
 type AliasErrorInfo   = {original:string, proposedAlias:string, error:string, status:number};
+type OkFunction = (data: AliasInfo) => void;
+type ErrorFunction = (data: AliasErrorInfo, status: number) => void;
 
-// wrap two router hooks into one, navigate safely if send to a route manually without expected state
-function useNavigationAndState<T>():[NavigateFunction, T]
-{
-  const navigate = useNavigate();
-  const state    = useLocation().state;
-  if (state === undefined) navigate('/');   // navigate to safe route / if state is undefined
+// reuse
+const fetchTemplate = { method: 'POST', headers: { 'Content-Type': 'application/json'} };
 
-  return [navigate, state];
+type SubmitFunction = (event: React.SyntheticEvent) => Promise<void>;
+function generateSubmit(url: string, body: AliasInfo, okfunc: OkFunction, errfunc: ErrorFunction):SubmitFunction {
+  return async (event: React.SyntheticEvent) => {
+    event.preventDefault();
+      try {
+          const response = await fetch(url, {...fetchTemplate, body: safeEncode(body)});
+          const data = await response.json();
+          if (response.ok)
+              okfunc(data as AliasInfo);
+          else
+              errfunc(data as AliasErrorInfo, response.status);
+      } catch (err) {
+          console.error(err);  //todo requires more error handling
+      }
+  };
 }
 
-function safeEncode(o:unknown)
-{
-  try {
-    return JSON.stringify(o)
-  } catch(err) {
-    console.error(`error encoding`, o);
-  }
-}
+
 export const DeleteAlias = () => {
   const [navigate, {original, alias}] = useNavigationAndState<AliasInfo>();
-
-  const revokeAlias = async () => {
-        try {
-          const response = await fetch(`/api/url/revoke`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: safeEncode({original, alias})  // original could be blank it isn't checking
-          });
-          const data = await response.json();
-          console.warn(`response from revoke =`, data, response);
-          if (response.ok)
-            navigate('/deleted', {state: {original, alias: data?.alias}});
-          else
-            navigate('/notdeleted', {
-              state: {
-                original,
-                proposedAlias: alias,
-                error: data?.error,
-                status: response.status
-              }
-            });
-        } catch(err) {
-          console.error(err);
-
-        }
-  };
-
+  
+  const revokeAlias = generateSubmit(`/api/url/revoke`, {original, alias},
+  (data)=>navigate('/deleted', {original, alias: data?.alias}),
+  (data,status)=>navigate('/notdeleted', {original, proposedAlias: alias, error: data?.error, status})
+   );
+  
   return (
     <>
       <h1>Delete an alias</h1>
       <Button onClick={revokeAlias}>Confirm Deletion of alias {alias}</Button>
     </>
   );
-}
+};
+
 export const AliasDeleted = () => {
   const [navigate, {original, alias}] = useNavigationAndState<AliasInfo>();
   return (
@@ -109,13 +92,11 @@ export const AliasDeleted = () => {
       <h1>Successfully Deleted</h1>
       <p>original: {original}</p>
       <p>alias: {alias}</p>
-
       <Button onClick={() => navigate('/create')}>Create a new Alias</Button>
-      <Button onClick={() => navigate('/delete', {state: {original,alias}})}>Delete again (to watch that fail)</Button>
-
+      <Button onClick={() => navigate('/delete',  {original,alias})}>Delete again (to watch that fail)</Button>
     </>
   );
-}
+};
 
 export const AliasNotDeleted = () => {
   const [navigate, {original, proposedAlias, error, status}] = useNavigationAndState<AliasErrorInfo>();
@@ -124,14 +105,12 @@ export const AliasNotDeleted = () => {
     <>
       <h1>Not Deleted</h1>
       <p>original: {original}</p>
-      <p>propopsedAlias: {proposedAlias}</p>
+      <p>proposedAlias: {proposedAlias}</p>
       <p style={{color: 'red'}}>{status} / {error}</p>
-
       <Button onClick={() => navigate('/create')}>Acknowledge</Button>
     </>
   );
-}
-
+};
 
 export const AliasNotCreated = () => {
   const [navigate, {original, proposedAlias, error, status}] = useNavigationAndState<AliasErrorInfo>();
@@ -140,13 +119,12 @@ export const AliasNotCreated = () => {
     <>
       <h1>Not Created</h1>
       <p>original: {original}</p>
-      <p>propopsedAlias: {proposedAlias}</p>
+      <p>proposedAlias: {proposedAlias}</p>
       <p style={{color:'red'}}>{status} / {error}</p>
-
       <Button onClick={() => navigate('/create')}>Try Again</Button>
     </>
   );
-}
+};
 
 export const AliasCreated = () => {
  const [navigate, {original,alias,microUrl}] = useNavigationAndState<AliasInfo>();
@@ -157,18 +135,14 @@ export const AliasCreated = () => {
     <p>original: {original}</p>
     <p>alias: {alias}</p>
     <p>Your new url is: <a title="test url in a new window" href={microUrl} target="_blank" rel="noopener noreferrer">{microUrl}</a></p>
-
     <Button onClick={()=>navigate('/create')}>Create a new one</Button>
-    <Button onClick={()=>navigate('/delete', {state:{original, alias}})}>Delete the alias</Button>
-
+    <Button onClick={()=>navigate('/delete', {original, alias})}>Delete the alias</Button>
   </>
  );
-
-}
+};
 
 export const CreateAlias = () => {
-  const navigate = useNavigate();
-
+  const [navigate,_] = useNavigationAndState();
   const [originalUrl, setOriginalUrl] = useState(originalUrlPlaceholder); // todo replace with blank initial state
   const [alias, setAlias] = useState('');
   const [isValidUrl, setIsValidUrl] = useState(false);
@@ -184,27 +158,15 @@ export const CreateAlias = () => {
       }
   }, [originalUrl, allowBadUrls]);
 
-  const handleSubmit = async (event:React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (isValidUrl) {
-      const response = await fetch(`api/url/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+  const handleSubmit = generateSubmit(`api/url/create`, {original:originalUrl, alias},
+    (data)=>
+        { 
+          setAlias(data.alias); 
+          navigate('/created', {original:originalUrl, alias:data.alias, microUrl:data.microUrl})
         },
-        body: safeEncode({ original:originalUrl, alias })
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setAlias(data.alias);
-        navigate('/created', {state: {original:originalUrl, alias:data.alias, microUrl:data.microUrl}});
-      } else {
-        // todo parse the errors
-        navigate('/notcreated', {state: {original:originalUrl, proposedAlias:alias, error:data.error, status:response.status}});
-      }
-    }
-  };
-
+    (data, status)=>navigate('/notcreated', {original:originalUrl, proposedAlias:alias, error:data.error, status})
+  );
+  
   return (
     <AliasForm onSubmit={handleSubmit} >
       <label style={{...labelStyle, gridArea: 'firstLabel'}}>
@@ -235,10 +197,7 @@ export const CreateAlias = () => {
              onChange={(e) => setAlias(e.target.value)}
              style={{...inputStyle, gridArea: 'secondInput'}}
       />
-
-      <Button type="submit" disabled={!isValidUrl} style={{gridArea:'submit'}}>
-        Submit
-      </Button>
+      <Button type="submit" disabled={!isValidUrl} style={{gridArea:'submit'}}>Submit</Button>
     </AliasForm>
   );
 };
