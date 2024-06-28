@@ -1,4 +1,5 @@
 namespace AdroitSampleServer.Controllers;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Models;
@@ -10,9 +11,12 @@ public class UrlController : ControllerBase
 {
     private readonly UrlConverter _urlConverter;
     private readonly string _serverUrl;  // used to generate a full url from alias
-    
+    private readonly Regex _validAliasRegex = new Regex("^[a-zA-Z0-9-_]+$");
+
     private IActionResult Unprocessable(UrlPair pair)   => UnprocessableEntity(new UrlPairError(pair, "Invalid URL"));
     private IActionResult AliasInUse(UrlPair pair)      => Conflict(new UrlPairError(pair, "Proposed URL alias already in use"));
+    private IActionResult AliasIllegal(UrlPair pair)      => UnprocessableEntity(new UrlPairError(pair, "Proposed URL alias contains illegal characters"));
+
     private IActionResult AliasIsUnknown(UrlPair pair)  => NotFound(new UrlPairError(pair, "Alias is Unknown"));
 
     public UrlController(UrlConverter urlConverter, IConfiguration configuration)
@@ -37,6 +41,9 @@ public class UrlController : ControllerBase
             return Unprocessable(pair);
         if (!string.IsNullOrEmpty(pair.Alias))
         {
+            if (!_validAliasRegex.IsMatch(pair.Alias))
+                return AliasIllegal(pair);
+
             var result = _urlConverter.ApplyTinyUrl(pair.Original, pair.Alias);
             return result != null?
                 Ok(new FullAlias(pair,$"{_serverUrl}/{result}")) :

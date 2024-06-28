@@ -28,11 +28,18 @@ public class UrlConverter
 
     public string? AllocateTinyUrl(string original)
     {
-        var alias = GenerateTinyUrl();
-        var wasAdded = _dict.TryAdd(alias, new UrlData(original));
-        return wasAdded?  alias: null;
-    }
+        string? alias;
+        bool wasAdded;
+        var attempts = 0;
 
+        do {
+            alias = GenerateTinyUrl();
+            wasAdded = _dict.TryAdd(alias, new UrlData(original));
+            ++attempts;
+        } while (!wasAdded && attempts < 3);
+
+        return wasAdded ? alias : null;
+    }
 
     // remove a tiny url association from the dictionary
     public string? RevokeTinyUrl(string alias)
