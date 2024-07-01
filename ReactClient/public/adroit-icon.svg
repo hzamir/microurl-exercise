@@ -1,0 +1,39 @@
+<svg width="220" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<!--    <image href="/adroit3.jpeg" height="200" width="200"/>-->
+
+    <defs>
+        <clipPath id="tri" clip-rule="evenodd">
+            <path d="
+            M0 0 H200 V200 H0 Z
+            M186 178.57
+             V75
+             L150 178.57
+             Z"
+                  fill="red"/>
+        </clipPath>
+
+        <clipPath id="blueclip" clip-rule="evenodd">
+            <rect x="30" y="30" width="150" height="115" fill="red"/>
+        </clipPath>
+        <clipPath id="greenclip" clip-rule="evenodd">
+            <rect x="30" y="65" width="80" height="80" fill="red"/>
+        </clipPath>
+
+    </defs>
+
+    
+    <!-- frame -->
+    <path d="M193 178.57
+           V28.57
+           A20 20 0 0 0 173 8.57
+           H27
+           A20 20 0 0 0 7 28.57
+           V151.43
+           A20 20 0 0 0 27 171.43
+           H190"
+          fill="none" stroke="#333333" stroke-width="14" clip-path="url(#tri)"/>
+  
+    <path d="M55  150 L115 10" stroke="#4CAF50" stroke-width="20" clip-path="url(#greenclip)"/>
+    <path d="M100 150 L160 10" stroke="#2196F3" stroke-width="20" clip-path="url(#blueclip)"/>
+
+</svg>
