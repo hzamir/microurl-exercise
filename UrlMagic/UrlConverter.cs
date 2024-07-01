@@ -6,8 +6,8 @@ namespace AdroitSampleServer.UrlMagic;
 // the Singleton guarantee for UrlConverter is in Program.cs services.AddSingleton<UrlConverter>(); // ensure there is only one
 public class UrlConverter
 {
-    private readonly ConcurrentDictionary<string, UrlData> _dict = new ConcurrentDictionary<string, UrlData>();
-    private readonly Random _random = new Random();
+    private readonly ConcurrentDictionary<string, UrlData> _dict = new();
+    private readonly Random _random = new();
     
     // todo replace this with a better generator
     private  string GenerateTinyUrl()
