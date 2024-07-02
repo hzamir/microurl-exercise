@@ -68,7 +68,7 @@ public class UrlController : ControllerBase
     }
 
     [HttpGet("statistics")]
-    public IActionResult Statistics(bool group = false, string? sort = null)
+    public IActionResult Statistics(bool group = false, string? sort = null, int maxRecords = 100, int page = 0)
     {
         var urlData = _urlConverter.UrlStats(); // Assuming this method returns all URL data
 
@@ -78,7 +78,7 @@ public class UrlController : ControllerBase
         // is too much trouble for one little controller, so we are just naming the indices of the output
         const int aliasIndex = 0;
         const int countIndex = 1;
-        
+
         if (group)
         {
             var groupedData = urlData
@@ -90,7 +90,22 @@ public class UrlController : ControllerBase
                 })
                 .ToList();
 
-            return Ok(new { UniqueUrlCount = groupedData.Count, AliasCount = urlData.Count, Urls = groupedData });
+            int totalPages = (int)Math.Ceiling(groupedData.Count / (double)maxRecords);
+
+            var paginatedGroupedData = groupedData
+                .Skip(page * maxRecords)
+                .Take(maxRecords)
+                .ToList();
+
+            return Ok(new 
+            { 
+                PageCount = totalPages,
+                CurrentPage = page,
+                MaxRecordsPerPage = maxRecords,
+                UniqueUrlCount = groupedData.Count, 
+                AliasCount = urlData.Count, 
+                Urls = paginatedGroupedData 
+            });
         }
         else
         {
@@ -100,7 +115,20 @@ public class UrlController : ControllerBase
             else if (sort == "count")
                 aliases = aliases.OrderByDescending(x => (long)x[countIndex]).ThenBy(x => (string)x[aliasIndex]).ToList();
 
-            return Ok(new { AliasCount = aliases.Count, Aliases = aliases });
+            int totalPages = (int)Math.Ceiling(aliases.Count / (double)maxRecords);
+
+            var paginatedAliases = aliases
+                .Skip(page * maxRecords)
+                .Take(maxRecords)
+                .ToList();
+
+            return Ok(new 
+            { 
+                PageCount = totalPages,
+                CurrentPage = page,
+                MaxRecordsPerPage = maxRecords,
+                AliasCount = aliases.Count, 
+                Aliases = paginatedAliases 
+            });
         }
-    }
-}
+    }}

@@ -24,6 +24,9 @@ The stats queries are available in the following flavors:
 * http://localhost:5000/api/url/statistics?sort=alias - sorts aliases in alphabetical order
 * http://localhost:5000/api/url/statistics?group=true - will consolidate all the aliases that point to the same url
 
+Since a complete stats dump would of millions of records would be unwieldy, the stats are paginated with parameters:
+**maxRecords=n&page=n** where page is 0 based. Each report gives the current page, the total number of pages, and the total number of records.
+
 ## Tech Stack
 * React: Per requirement. It uses React 18, the latest stable version of React
 * Vite: The most popular and most current build system for lightweight react projects
